@@ -29,6 +29,7 @@ TestApp::~TestApp()
 
 void TestApp::InitWindow()
 {
+    glfwWindowHint(GLFW_RESIZABLE, false);
     m_window = glfwCreateWindow(1600, 900, "Hello World", nullptr, nullptr);
     CHECK(m_window);
 }
@@ -37,6 +38,8 @@ void TestApp::FreeWindow()
 {
     glfwDestroyWindow(m_window);
 }
+
+#ifndef NDEBUG
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL
 s_DebugMessageCallback(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
@@ -48,6 +51,8 @@ s_DebugMessageCallback(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
     os << "[Vulkan:" << severity << "] " << data->pMessage << '\n';
     return VK_FALSE;
 }
+
+#endif
 
 void TestApp::InitVulkan()
 {
