@@ -18,29 +18,42 @@ static uint32_t s_FindMemoryTypeIndex(VkPhysicalDevice device, uint32_t filter, 
     CHECK(false);
 }
 
-VertexBuffer::VertexBuffer(TestApp const& app, VkDeviceSize size)
-    : m_device(app.GetDevice()), m_size(size)
+static std::pair<VkBuffer, VkDeviceMemory>
+s_CreateBufferAndAllocateMemory(VkDevice device, VkPhysicalDevice pd, VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags props)
 {
+    std::pair<VkBuffer, VkDeviceMemory> result;
+
     VkBufferCreateInfo buffer_ci{};
     buffer_ci.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     buffer_ci.size = size;
-    buffer_ci.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    buffer_ci.usage = usage;
     buffer_ci.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    CHECK(vkCreateBuffer(m_device, &buffer_ci, nullptr, &m_buffer) == VK_SUCCESS);
+    CHECK(vkCreateBuffer(device, &buffer_ci, nullptr, &result.first) != VK_SUCCESS);
 
     VkMemoryRequirements req;
-    vkGetBufferMemoryRequirements(m_device, m_buffer, &req);
+    vkGetBufferMemoryRequirements(device, result.first, &req);
 
-    VkMemoryAllocateInfo alloc_i{};
-    alloc_i.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    alloc_i.allocationSize = req.size;
-    alloc_i.memoryTypeIndex = s_FindMemoryTypeIndex(app.GetPhysicalDevice(), req.memoryTypeBits,
-        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    VkMemoryAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocInfo.allocationSize = req.size;
+    allocInfo.memoryTypeIndex = s_FindMemoryTypeIndex(pd, req.memoryTypeBits, props);
 
-    CHECK(vkAllocateMemory(m_device, &alloc_i, nullptr, &m_memory) == VK_SUCCESS);
+    CHECK(vkAllocateMemory(device, &allocInfo, nullptr, &result.second) != VK_SUCCESS);
 
-    vkBindBufferMemory(m_device, m_buffer, m_memory, 0);
+    vkBindBufferMemory(device, result.first, result.second, 0);
+
+    return result;
+}
+
+VertexBuffer::VertexBuffer(TestApp const& app, VkDeviceSize size)
+    : m_device(app.GetDevice()), m_size(size)
+{
+    auto [fst, snd] = s_CreateBufferAndAllocateMemory(m_device, app.GetPhysicalDevice(), size,
+            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+    m_buffer = fst;
+    m_memory = snd;
 }
 
 VertexBuffer::~VertexBuffer()
