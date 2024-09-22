@@ -3,7 +3,7 @@
 
 #define THISFILE "Graphics.cpp"
 
-static VkShaderModule s_CreateShaderModule(VkDevice device, std::string const& path)
+static VkShaderModule s_CreateShaderModule(VkDevice device, char const* path)
 {
 	std::ifstream ifs(path, std::ios::ate | std::ios::binary);
 	CHECK(ifs.is_open());
@@ -23,11 +23,11 @@ static VkShaderModule s_CreateShaderModule(VkDevice device, std::string const& p
 	return module;
 }
 
-GraphicsPipeline::GraphicsPipeline(TestApp const& app, Framebuffers const& framebuffers, std::string const& vert_path, std::string const& frag_path)
+GraphicsPipeline::GraphicsPipeline(TestApp const& app, CreateInfo const& info)
 	: m_device(app.GetDevice()), m_pipeline{}, m_pipeline_layout{}
 {
-	VkShaderModule vert = s_CreateShaderModule(m_device, vert_path);
-	VkShaderModule frag = s_CreateShaderModule(m_device, frag_path);
+	VkShaderModule vert = s_CreateShaderModule(m_device, info.Vertex);
+	VkShaderModule frag = s_CreateShaderModule(m_device, info.Fragment);
 
 	VkPipelineShaderStageCreateInfo shader_stages_ci[] = { {}, {} };
 
@@ -41,8 +41,19 @@ GraphicsPipeline::GraphicsPipeline(TestApp const& app, Framebuffers const& frame
 	shader_stages_ci[1].module = frag;
 	shader_stages_ci[1].pName = "main";
 
+	VkVertexInputBindingDescription binding_desc{};
+	binding_desc.binding = 0;
+	binding_desc.stride = info.Input.m_stride * sizeof(float);
+	binding_desc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
+
 	VkPipelineVertexInputStateCreateInfo vertex_input_ci{};
 	vertex_input_ci.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+	if (info.Input.m_descs.size()) {
+		vertex_input_ci.vertexBindingDescriptionCount = 1;
+		vertex_input_ci.vertexAttributeDescriptionCount = info.Input.m_descs.size();
+		vertex_input_ci.pVertexBindingDescriptions = &binding_desc;
+		vertex_input_ci.pVertexAttributeDescriptions = info.Input.m_descs.data();
+	}
 
 	VkPipelineInputAssemblyStateCreateInfo input_assembly_ci{};
 	input_assembly_ci.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -120,7 +131,7 @@ GraphicsPipeline::GraphicsPipeline(TestApp const& app, Framebuffers const& frame
 	pipeline_ci.pColorBlendState = &blending_ci;
 	pipeline_ci.pDynamicState = &dynamic_state_ci;
 	pipeline_ci.layout = m_pipeline_layout;
-	pipeline_ci.renderPass = framebuffers.GetRenderPass();
+	pipeline_ci.renderPass = info.RenderPass;
 	pipeline_ci.subpass = 0;
 	pipeline_ci.basePipelineHandle = VK_NULL_HANDLE;
 

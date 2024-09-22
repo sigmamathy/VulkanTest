@@ -8,6 +8,8 @@ struct DrawRecorder
     VkExtent2D Extent;
 
     void BindPipeline(class GraphicsPipeline const& pipeline);
+    void BindVertexBuffer(class VertexBuffer const& buffer);
+
     void SetViewport(const VkViewport &viewport);
     void SetViewportDefault();
     void SetScissor(VkRect2D scissor);

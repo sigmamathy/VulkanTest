@@ -1,13 +1,30 @@
 #include "TestApp.hpp"
 #include "Graphics.hpp"
 #include "Drawing.hpp"
+#include "Buffer.hpp"
 
 int main(int argc, char** argv)
 {
     TestApp app;
-
     Framebuffers framebuffers(app);
-    GraphicsPipeline pipeline(app, framebuffers, "shaders/shader.vert.spv", "shaders/shader.frag.spv");
+
+    GraphicsPipeline::CreateInfo info;
+    info.RenderPass = framebuffers.GetRenderPass();
+    info.Vertex = "shaders/shader.vert.spv";
+    info.Fragment = "shaders/shader.frag.spv";
+    info.Input.Add(0, 3);
+    info.Input.Add(1, 3);
+
+    GraphicsPipeline pipeline(app, info);
+
+    float vertices[] = {
+        -0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f,
+        0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f,
+        0.0f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f,
+    };
+
+    VertexBuffer buffer(app, sizeof(vertices));
+    buffer.MapData(vertices);
 
     DrawCommandPool pool(app);
     pool.CreateBuffers(2);
@@ -25,6 +42,7 @@ int main(int argc, char** argv)
         rec.BindPipeline(pipeline);
         rec.SetViewportDefault();
         rec.SetScissorDefault();
+        rec.BindVertexBuffer(buffer);
         rec.Draw(3, 1);
         rec.EndRecord();
 

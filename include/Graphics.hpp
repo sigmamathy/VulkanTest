@@ -2,11 +2,32 @@
 
 #include "Dependencies.hpp"
 
+struct VertexInputLayout
+{
+    std::vector<VkVertexInputAttributeDescription> m_descs;
+    uint32_t m_stride = 0;
+
+    void Add(int location, int size)
+    {
+        auto format = static_cast<VkFormat>(VK_FORMAT_R32_SFLOAT + (size - 1) * 3);
+        m_descs.emplace_back(location, 0, format, m_stride * sizeof(float));
+        m_stride += size;
+    }
+};
+
 class GraphicsPipeline
 {
 public:
 
-    GraphicsPipeline(class TestApp const& app, class Framebuffers const& framebuffers, std::string const& vert_path, std::string const& frag_path);
+    struct CreateInfo
+    {
+        VkRenderPass RenderPass;
+        char const* Vertex;
+        char const* Fragment;
+        VertexInputLayout Input;
+    };
+
+    GraphicsPipeline(class TestApp const& app, CreateInfo const& info);
 
     ~GraphicsPipeline();
 

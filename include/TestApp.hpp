@@ -23,6 +23,7 @@ public:
 
     [[nodiscard]] VkInstance GetInstance() const { return m_vkinst; }
     [[nodiscard]] GLFWwindow* GetWindow() const { return m_window; }
+    [[nodiscard]] VkPhysicalDevice GetPhysicalDevice() const { return m_physical_device; }
     [[nodiscard]] VkDevice GetDevice() const { return m_device; }
     [[nodiscard]] CommandQueue GetGraphicsQueue() const { return m_graphics; }
     [[nodiscard]] CommandQueue GetPresentQueue() const { return m_present; }

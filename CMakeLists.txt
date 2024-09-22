@@ -14,6 +14,8 @@ add_executable(${PROJECT_NAME}
         include/TestApp.hpp
         include/Graphics.hpp
         include/Drawing.hpp
+        include/Buffer.hpp
+        src/Buffer.cpp
 )
 
 find_package(glfw3 CONFIG REQUIRED)

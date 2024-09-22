@@ -1,6 +1,7 @@
 #include "Drawing.hpp"
 #include "TestApp.hpp"
 #include "Graphics.hpp"
+#include "Buffer.hpp"
 
 #define THISFILE "Drawing.cpp"
 
@@ -71,6 +72,13 @@ void DrawCommandPool::ResetRecord(size_t index)
 void DrawRecorder::BindPipeline(GraphicsPipeline const &pipeline)
 {
     vkCmdBindPipeline(Buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.GetPipeline());
+}
+
+void DrawRecorder::BindVertexBuffer(VertexBuffer const &buffer)
+{
+    VkBuffer b = buffer.GetBuffer();
+    VkDeviceSize off = 0;
+    vkCmdBindVertexBuffers(Buffer, 0, 1, &b, &off);
 }
 
 void DrawRecorder::SetViewport(VkViewport const& viewport)
