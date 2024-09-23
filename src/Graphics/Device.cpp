@@ -35,50 +35,73 @@ void GraphicsDevice::WaitIdle()
     vkDeviceWaitIdle(m_device);
 }
 
-size_t GraphicsDevice::CreateDrawCmdBuffers(size_t count)
+void GraphicsDevice::CreateDrawCmdBuffers(VkCommandBuffer* buffers, size_t count)
 {
-    size_t index = m_cmd_buffers.size();
-    m_cmd_buffers.resize(index + count);
-
     VkCommandBufferAllocateInfo info{};
     info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     info.commandPool = m_draw_pool;
     info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     info.commandBufferCount = static_cast<uint32_t>(count);
 
-    ERRCHECK(vkAllocateCommandBuffers(m_device, &info, m_cmd_buffers.data() + index) == VK_SUCCESS);
-    return index;
+    ERRCHECK(vkAllocateCommandBuffers(m_device, &info, buffers) == VK_SUCCESS);
 }
 
-DrawCmdRecorder GraphicsDevice::BeginRecord(size_t index, size_t frame_index)
+DrawCmdRecorder GraphicsDevice::BeginRecord(VkCommandBuffer buffer, size_t frame_index)
 {
-    VkCommandBuffer buffer = m_cmd_buffers[index];
+    VkCommandBufferBeginInfo begin_i{};
+    begin_i.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    begin_i.flags = 0; // Optional
+    begin_i.pInheritanceInfo = nullptr; // Optional
 
-    VkCommandBufferBeginInfo beginInfo{};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = 0; // Optional
-    beginInfo.pInheritanceInfo = nullptr; // Optional
+    ERRCHECK(vkBeginCommandBuffer(buffer, &begin_i) == VK_SUCCESS);
 
-    ERRCHECK(vkBeginCommandBuffer(buffer, &beginInfo) == VK_SUCCESS);
+    VkRenderPassBeginInfo render_pass_i{};
+    render_pass_i.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    render_pass_i.renderPass = m_render_pass;
+    render_pass_i.framebuffer = m_framebuffers[frame_index];
+    render_pass_i.renderArea.offset = { 0, 0 };
+    render_pass_i.renderArea.extent = m_swapchain_extent;
 
-    VkRenderPassBeginInfo renderPassInfo{};
-    renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass = m_render_pass;
-    renderPassInfo.framebuffer = m_framebuffers[frame_index];
-    renderPassInfo.renderArea.offset = { 0, 0 };
-    renderPassInfo.renderArea.extent = m_swapchain_extent;
+    VkClearValue clear_color = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
+    render_pass_i.clearValueCount = 1;
+    render_pass_i.pClearValues = &clear_color;
 
-    VkClearValue clearColor = { {{0.0f, 0.0f, 0.0f, 1.0f}} };
-    renderPassInfo.clearValueCount = 1;
-    renderPassInfo.pClearValues = &clearColor;
-
-    vkCmdBeginRenderPass(buffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBeginRenderPass(buffer, &render_pass_i, VK_SUBPASS_CONTENTS_INLINE);
     return DrawCmdRecorder{buffer, m_swapchain_extent};
 }
 
-void GraphicsDevice::ResetRecord(size_t index)
+void GraphicsDevice::ResetRecord(VkCommandBuffer buffer)
 {
-    vkResetCommandBuffer(m_cmd_buffers[index], 0);
+    vkResetCommandBuffer(buffer, 0);
+}
+
+VkCommandBuffer GraphicsDevice::CreateTmpCmd(std::function<void(VkCommandBuffer)> const &rec) const
+{
+    VkCommandBufferAllocateInfo cmd_i{};
+    cmd_i.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    cmd_i.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    cmd_i.commandPool = m_tmp_pool;
+    cmd_i.commandBufferCount = 1;
+
+    VkCommandBuffer cmd;
+    vkAllocateCommandBuffers(m_device, &cmd_i, &cmd);
+
+    VkCommandBufferBeginInfo begin_i{};
+    begin_i.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    begin_i.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+    vkBeginCommandBuffer(cmd, &begin_i);
+
+    rec(cmd);
+
+    vkEndCommandBuffer(cmd);
+
+    return cmd;
+}
+
+void GraphicsDevice::FreeTmpCmd(VkCommandBuffer buffer) const
+{
+    vkFreeCommandBuffers(m_device, m_tmp_pool, 1, &buffer);
 }
 
 void DrawCmdRecorder::BindPipeline(GraphicsPipeline const &pipeline)
@@ -360,8 +383,6 @@ void GraphicsDevice::InitSwapchain(DisplayWindow const& window)
 
 void GraphicsDevice::InitCommandPool()
 {
-    m_cmd_buffers.reserve(8);
-
     VkCommandPoolCreateInfo pool_ci{};
     pool_ci.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     pool_ci.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;

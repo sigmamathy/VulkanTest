@@ -13,6 +13,7 @@
 #include <unordered_set>
 #include <limits>
 #include <fstream>
+#include <functional>
 
 #define GRAPHICS_VALIDATION_LAYER "VK_LAYER_KHRONOS_validation"
 

@@ -44,19 +44,19 @@ public:
 
     void WaitIdle();
 
-    size_t CreateDrawCmdBuffers(size_t count);
+    void CreateDrawCmdBuffers(VkCommandBuffer* buffers, size_t count);
 
-    DrawCmdRecorder BeginRecord(size_t index, size_t frame_index);
+    DrawCmdRecorder BeginRecord(VkCommandBuffer buffer, size_t frame_index);
 
-    void ResetRecord(size_t index);
+    void ResetRecord(VkCommandBuffer buffer);
 
-    NODISCARD VkCommandBuffer GetCommandBuffer(size_t index) const { return m_cmd_buffers[index]; }
+    VkCommandBuffer CreateTmpCmd(std::function<void(VkCommandBuffer)> const& rec) const;
+
+    void FreeTmpCmd(VkCommandBuffer buffer) const;
 
     NODISCARD VkPhysicalDevice GetPhysicalDevice() const { return m_physical_device; }
 
     NODISCARD VkDevice GetDevice() const { return m_device; }
-
-    NODISCARD VkCommandPool GetTmpPool() const { return m_tmp_pool; }
 
     NODISCARD VkRenderPass GetRenderPass() const { return m_render_pass; }
 
@@ -85,7 +85,6 @@ private:
     std::vector<VkImageView> m_swapchain_image_views;
 
     VkCommandPool m_draw_pool, m_tmp_pool;
-    std::vector<VkCommandBuffer> m_cmd_buffers;
 
     VkRenderPass m_render_pass;
     std::vector<VkFramebuffer> m_framebuffers;

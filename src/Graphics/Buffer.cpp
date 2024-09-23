@@ -47,52 +47,39 @@ s_CreateBufferAndAllocateMemory(VkDevice device, VkPhysicalDevice pd, VkDeviceSi
 }
 
 static void
-s_CopyViaStagingBuffer(VkDevice device, VkPhysicalDevice pd, VkDeviceSize size, VkCommandPool pool, VkQueue queue,
-    void const* src, VkBuffer dst)
+s_CopyViaStagingBuffer(GraphicsDevice const& device, VkDeviceSize size, void const* src, VkBuffer dst)
 {
-    auto [stage, stage_mem] = s_CreateBufferAndAllocateMemory(device, pd, size,
+    auto [stage, stage_mem] = s_CreateBufferAndAllocateMemory(device.GetDevice(), device.GetPhysicalDevice(), size,
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
 
     void* data;
-    vkMapMemory(device, stage_mem, 0, size, 0, &data);
+    vkMapMemory(device.GetDevice(), stage_mem, 0, size, 0, &data);
     memcpy(data, src, size);
-    vkUnmapMemory(device, stage_mem);
+    vkUnmapMemory(device.GetDevice(), stage_mem);
 
-    VkCommandBufferAllocateInfo cmd_i{};
-    cmd_i.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    cmd_i.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    cmd_i.commandPool = pool;
-    cmd_i.commandBufferCount = 1;
-
-    VkCommandBuffer cmd;
-    vkAllocateCommandBuffers(device, &cmd_i, &cmd);
-
-    VkCommandBufferBeginInfo begin_i{};
-    begin_i.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    begin_i.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-    vkBeginCommandBuffer(cmd, &begin_i);
-
-    VkBufferCopy buffer_copy{};
-    buffer_copy.srcOffset = 0; // Optional
-    buffer_copy.dstOffset = 0; // Optional
-    buffer_copy.size = size;
-    vkCmdCopyBuffer(cmd, stage, dst, 1, &buffer_copy);
-
-    vkEndCommandBuffer(cmd);
+    VkCommandBuffer copy = device.CreateTmpCmd([=](VkCommandBuffer cmd) -> void
+    {
+        VkBufferCopy buffer_copy{};
+        buffer_copy.srcOffset = 0; // Optional
+        buffer_copy.dstOffset = 0; // Optional
+        buffer_copy.size = size;
+        vkCmdCopyBuffer(cmd, stage, dst, 1, &buffer_copy);
+    });
 
     VkSubmitInfo submit_i{};
     submit_i.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submit_i.commandBufferCount = 1;
-    submit_i.pCommandBuffers = &cmd;
+    submit_i.pCommandBuffers = &copy;
+
+    auto queue = device.GetGraphicsQueue().Queue;
 
     vkQueueSubmit(queue, 1, &submit_i, VK_NULL_HANDLE);
     vkQueueWaitIdle(queue);
 
-    vkFreeCommandBuffers(device, pool, 1, &cmd);
+    device.FreeTmpCmd(copy);
 
-    vkDestroyBuffer(device, stage, nullptr);
-    vkFreeMemory(device, stage_mem, nullptr);
+    vkDestroyBuffer(device.GetDevice(), stage, nullptr);
+    vkFreeMemory(device.GetDevice(), stage_mem, nullptr);
 }
 
 VertexBuffer::VertexBuffer(GraphicsDevice const& device, VkDeviceSize size)
@@ -113,7 +100,7 @@ VertexBuffer::~VertexBuffer()
 
 void VertexBuffer::MapData(const void *src)
 {
-    s_CopyViaStagingBuffer(m_device.GetDevice(), m_device.GetPhysicalDevice(), m_size, m_device.GetTmpPool(), m_device.GetGraphicsQueue().Queue, src, m_buffer);
+    s_CopyViaStagingBuffer(m_device, m_size, src, m_buffer);
 }
 
 IndexBuffer::IndexBuffer(GraphicsDevice const& device, VkDeviceSize size)
@@ -134,6 +121,6 @@ IndexBuffer::~IndexBuffer()
 
 void IndexBuffer::MapData(const unsigned *src)
 {
-    s_CopyViaStagingBuffer(m_device.GetDevice(), m_device.GetPhysicalDevice(), m_size, m_device.GetTmpPool(), m_device.GetGraphicsQueue().Queue, src, m_buffer);
+    s_CopyViaStagingBuffer(m_device, m_size, src, m_buffer);
 }
 

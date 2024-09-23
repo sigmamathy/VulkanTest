@@ -32,7 +32,8 @@ int main(int argc, char** argv)
         0, 2, 3
     };
 
-    device.CreateDrawCmdBuffers(2);
+    VkCommandBuffer cmd[2];
+    device.CreateDrawCmdBuffers(cmd, 2);
 
     VertexBuffer vb(device, sizeof(vertices));
     vb.MapData(vertices);
@@ -47,9 +48,9 @@ int main(int argc, char** argv)
     {
         uint32_t index = syncs[frame].NextFrame();
 
-        device.ResetRecord(frame);
+        device.ResetRecord(cmd[frame]);
 
-        DrawCmdRecorder rec = device.BeginRecord(frame, index);
+        DrawCmdRecorder rec = device.BeginRecord(cmd[frame], index);
         rec.BindPipeline(pipeline);
         rec.SetViewportDefault();
         rec.SetScissorDefault();
@@ -58,7 +59,7 @@ int main(int argc, char** argv)
         rec.DrawIndexed(6, 1);
         rec.EndRecord();
 
-        syncs[frame].SubmitDraw(device.GetCommandBuffer(frame));
+        syncs[frame].SubmitDraw(cmd[frame]);
         syncs[frame].PresentOnScreen(index);
         window.PollEvents();
 
