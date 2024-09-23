@@ -6,7 +6,7 @@
 static VkShaderModule s_CreateShaderModule(VkDevice device, char const* path)
 {
 	std::ifstream ifs(path, std::ios::ate | std::ios::binary);
-	CHECK(ifs.is_open());
+	ERRCHECK(ifs.is_open());
 	size_t fsize = ifs.tellg();
 	std::vector<char> buffer(fsize);
 	ifs.seekg(0);
@@ -19,7 +19,7 @@ static VkShaderModule s_CreateShaderModule(VkDevice device, char const* path)
 	shader_ci.pCode = reinterpret_cast<const uint32_t*>(buffer.data());
 
 	VkShaderModule module;
-	CHECK(vkCreateShaderModule(device, &shader_ci, nullptr, &module) == VK_SUCCESS);
+	ERRCHECK(vkCreateShaderModule(device, &shader_ci, nullptr, &module) == VK_SUCCESS);
 	return module;
 }
 
@@ -117,7 +117,7 @@ GraphicsPipeline::GraphicsPipeline(TestApp const& app, CreateInfo const& info)
 
 	VkPipelineLayoutCreateInfo pipeline_layout_ci{};
 	pipeline_layout_ci.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	CHECK(vkCreatePipelineLayout(m_device, &pipeline_layout_ci, nullptr, &m_pipeline_layout) == VK_SUCCESS);
+	ERRCHECK(vkCreatePipelineLayout(m_device, &pipeline_layout_ci, nullptr, &m_pipeline_layout) == VK_SUCCESS);
 
 	VkGraphicsPipelineCreateInfo pipeline_ci{};
 	pipeline_ci.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -135,7 +135,7 @@ GraphicsPipeline::GraphicsPipeline(TestApp const& app, CreateInfo const& info)
 	pipeline_ci.subpass = 0;
 	pipeline_ci.basePipelineHandle = VK_NULL_HANDLE;
 
-	CHECK(vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &pipeline_ci, nullptr, &m_pipeline) == VK_SUCCESS);
+	ERRCHECK(vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &pipeline_ci, nullptr, &m_pipeline) == VK_SUCCESS);
 
 	vkDestroyShaderModule(m_device, vert, nullptr);
 	vkDestroyShaderModule(m_device, frag, nullptr);
@@ -176,7 +176,7 @@ Framebuffers::Framebuffers(TestApp const &app)
 	render_pass_ci.subpassCount = 1;
 	render_pass_ci.pSubpasses = &subpass;
 
-	CHECK(vkCreateRenderPass(m_device, &render_pass_ci, nullptr, &m_render_pass) == VK_SUCCESS);
+	ERRCHECK(vkCreateRenderPass(m_device, &render_pass_ci, nullptr, &m_render_pass) == VK_SUCCESS);
 
 	auto& image_views = app.GetSwapchainImageViews();
 	m_framebuffers.resize(image_views.size());
@@ -192,7 +192,7 @@ Framebuffers::Framebuffers(TestApp const &app)
 		framebufferInfo.height = m_extent.height;
 		framebufferInfo.layers = 1;
 
-		CHECK(vkCreateFramebuffer(m_device, &framebufferInfo, nullptr, &m_framebuffers[i]) == VK_SUCCESS);
+		ERRCHECK(vkCreateFramebuffer(m_device, &framebufferInfo, nullptr, &m_framebuffers[i]) == VK_SUCCESS);
 	}
 }
 

@@ -15,7 +15,7 @@ DrawCommandPool::DrawCommandPool(TestApp const& app)
     pool_ci.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
     pool_ci.queueFamilyIndex = app.GetGraphicsQueue().FamilyIndex;
 
-    CHECK(vkCreateCommandPool(m_device, &pool_ci, nullptr, &m_pool) == VK_SUCCESS);
+    ERRCHECK(vkCreateCommandPool(m_device, &pool_ci, nullptr, &m_pool) == VK_SUCCESS);
 }
 
 DrawCommandPool::~DrawCommandPool()
@@ -34,7 +34,7 @@ size_t DrawCommandPool::CreateBuffers(size_t count)
     info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     info.commandBufferCount = static_cast<uint32_t>(count);
 
-    CHECK(vkAllocateCommandBuffers(m_device, &info, m_buffers.data() + index) == VK_SUCCESS);
+    ERRCHECK(vkAllocateCommandBuffers(m_device, &info, m_buffers.data() + index) == VK_SUCCESS);
     return index;
 }
 
@@ -47,7 +47,7 @@ DrawRecorder DrawCommandPool::BeginRecord(size_t index, Framebuffers const& fram
     beginInfo.flags = 0; // Optional
     beginInfo.pInheritanceInfo = nullptr; // Optional
 
-    CHECK(vkBeginCommandBuffer(buffer, &beginInfo) == VK_SUCCESS);
+    ERRCHECK(vkBeginCommandBuffer(buffer, &beginInfo) == VK_SUCCESS);
 
     VkRenderPassBeginInfo renderPassInfo{};
     renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -79,6 +79,11 @@ void DrawRecorder::BindVertexBuffer(VertexBuffer const &buffer)
     VkBuffer b = buffer.GetBuffer();
     VkDeviceSize off = 0;
     vkCmdBindVertexBuffers(Buffer, 0, 1, &b, &off);
+}
+
+void DrawRecorder::BindIndexBuffer(IndexBuffer const &buffer)
+{
+    vkCmdBindIndexBuffer(Buffer, buffer.GetBuffer(), 0, VK_INDEX_TYPE_UINT32);
 }
 
 void DrawRecorder::SetViewport(VkViewport const& viewport)
@@ -120,10 +125,15 @@ void DrawRecorder::Draw(uint32_t count, uint32_t instance)
     vkCmdDraw(Buffer, count, instance, 0, 0);
 }
 
+void DrawRecorder::DrawIndexed(uint32_t count, uint32_t instance)
+{
+    vkCmdDrawIndexed(Buffer, count, instance, 0, 0, 0);
+}
+
 void DrawRecorder::EndRecord()
 {
     vkCmdEndRenderPass(Buffer);
-    CHECK(vkEndCommandBuffer(Buffer) == VK_SUCCESS);
+    ERRCHECK(vkEndCommandBuffer(Buffer) == VK_SUCCESS);
 }
 
 DrawPresentSynchronizer::DrawPresentSynchronizer(TestApp const& app)
@@ -136,7 +146,7 @@ DrawPresentSynchronizer::DrawPresentSynchronizer(TestApp const& app)
     fence_ci.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fence_ci.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-    CHECK(
+    ERRCHECK(
         vkCreateSemaphore(m_device, &semaphore_ci, nullptr, &m_image_available) == VK_SUCCESS
         && vkCreateSemaphore(m_device, &semaphore_ci, nullptr, &m_render_finished) == VK_SUCCESS
         && vkCreateFence(m_device, &fence_ci, nullptr, &m_in_flight) == VK_SUCCESS);
@@ -173,7 +183,7 @@ void DrawPresentSynchronizer::SubmitDraw(VkCommandBuffer buffer)
     submit.signalSemaphoreCount = 1;
     submit.pSignalSemaphores = &m_render_finished;
 
-    CHECK(vkQueueSubmit(m_graphics_queue, 1, &submit, m_in_flight) == VK_SUCCESS);
+    ERRCHECK(vkQueueSubmit(m_graphics_queue, 1, &submit, m_in_flight) == VK_SUCCESS);
 }
 
 void DrawPresentSynchronizer::PresentOnScreen(uint32_t frame_index)
@@ -187,6 +197,6 @@ void DrawPresentSynchronizer::PresentOnScreen(uint32_t frame_index)
     presentInfo.pSwapchains = &m_swapchain;
     presentInfo.pImageIndices = &frame_index;
 
-    CHECK(vkQueuePresentKHR(m_present_queue, &presentInfo) == VK_SUCCESS);
+    ERRCHECK(vkQueuePresentKHR(m_present_queue, &presentInfo) == VK_SUCCESS);
 }
 

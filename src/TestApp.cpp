@@ -31,7 +31,7 @@ void TestApp::InitWindow()
 {
     glfwWindowHint(GLFW_RESIZABLE, false);
     m_window = glfwCreateWindow(1600, 900, "Hello World", nullptr, nullptr);
-    CHECK(m_window);
+    ERRCHECK(m_window);
 }
 
 void TestApp::FreeWindow()
@@ -80,7 +80,7 @@ void TestApp::InitVulkan()
     vkEnumerateInstanceLayerProperties(&layer_count, nullptr);
     std::vector<VkLayerProperties> av_layers(layer_count);
     vkEnumerateInstanceLayerProperties(&layer_count, av_layers.data());
-    CHECK(std::find_if(av_layers.begin(), av_layers.end(),
+    ERRCHECK(std::find_if(av_layers.begin(), av_layers.end(),
         [](VkLayerProperties const& prop) -> bool {
             return std::strcmp(prop.layerName, validation_layer) == 0;
         }) != av_layers.end());
@@ -119,13 +119,13 @@ void TestApp::InitVulkan()
 
 #endif
 
-    CHECK(vkCreateInstance(&inst_ci, nullptr, &m_vkinst) == VK_SUCCESS);
+    ERRCHECK(vkCreateInstance(&inst_ci, nullptr, &m_vkinst) == VK_SUCCESS);
 
 #ifndef NDEBUG
 
     auto func = reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(
         vkGetInstanceProcAddr(m_vkinst, "vkCreateDebugUtilsMessengerEXT"));
-    CHECK(func);
+    ERRCHECK(func);
     func(m_vkinst, &debug_ci, nullptr, &m_debug_messenger);
 
 #endif
@@ -137,7 +137,7 @@ void TestApp::FreeVulkan()
 
     auto func = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
         vkGetInstanceProcAddr(m_vkinst, "vkDestroyDebugUtilsMessengerEXT"));
-    CHECK(func);
+    ERRCHECK(func);
     func(m_vkinst, m_debug_messenger, nullptr);
 
 #endif
@@ -147,7 +147,7 @@ void TestApp::FreeVulkan()
 
 void TestApp::InitWindowSurface()
 {
-    CHECK(glfwCreateWindowSurface(m_vkinst, m_window, nullptr, &m_surface) == VK_SUCCESS);
+    ERRCHECK(glfwCreateWindowSurface(m_vkinst, m_window, nullptr, &m_surface) == VK_SUCCESS);
 }
 
 void TestApp::FreeWindowSurface()
@@ -160,7 +160,7 @@ void TestApp::InitDevice()
     // only query the first gpu available
     uint32_t device_count = 0;
     vkEnumeratePhysicalDevices(m_vkinst, &device_count, nullptr);
-    CHECK(device_count);
+    ERRCHECK(device_count);
     device_count = 1;
     vkEnumeratePhysicalDevices(m_vkinst, &device_count, &m_physical_device);
 
@@ -191,7 +191,7 @@ void TestApp::InitDevice()
         }
     }
 
-    CHECK(graphics_ok && present_ok);
+    ERRCHECK(graphics_ok && present_ok);
 
     std::vector<VkDeviceQueueCreateInfo> queue_create_infos;
     float priority = 1.0f;
@@ -229,7 +229,7 @@ void TestApp::InitDevice()
 
 #endif
 
-    CHECK(vkCreateDevice(m_physical_device, &device_ci, nullptr, &m_device) == VK_SUCCESS);
+    ERRCHECK(vkCreateDevice(m_physical_device, &device_ci, nullptr, &m_device) == VK_SUCCESS);
 
     vkGetDeviceQueue(m_device, m_graphics.FamilyIndex, 0, &m_graphics.Queue);
     vkGetDeviceQueue(m_device, m_present.FamilyIndex, 0, &m_present.Queue);
@@ -336,7 +336,7 @@ void TestApp::InitSwapchain()
     swapchain_ci.clipped = VK_TRUE;
     swapchain_ci.oldSwapchain = VK_NULL_HANDLE;
 
-    CHECK(vkCreateSwapchainKHR(m_device, &swapchain_ci, nullptr, &m_swapchain) == VK_SUCCESS);
+    ERRCHECK(vkCreateSwapchainKHR(m_device, &swapchain_ci, nullptr, &m_swapchain) == VK_SUCCESS);
 
     m_swapchain_image_format = format;
     m_swapchain_extent = extent;
@@ -363,7 +363,7 @@ void TestApp::InitSwapchain()
         view_ci.subresourceRange.baseArrayLayer = 0;
         view_ci.subresourceRange.layerCount = 1;
 
-        CHECK(vkCreateImageView(m_device, &view_ci, nullptr, &m_swapchain_image_views[i]) == VK_SUCCESS);
+        ERRCHECK(vkCreateImageView(m_device, &view_ci, nullptr, &m_swapchain_image_views[i]) == VK_SUCCESS);
     }
 }
 

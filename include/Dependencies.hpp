@@ -14,7 +14,7 @@
 #include <limits>
 #include <fstream>
 
-#define CHECK(...) if (!(__VA_ARGS__)) [[unlikely]] { std::cerr << "Requirement: " #__VA_ARGS__\
+#define ERRCHECK(...) if (!(__VA_ARGS__)) [[unlikely]] { std::cerr << "Requirement: " #__VA_ARGS__\
     " FAILED. (" THISFILE ":" << std::to_string(__LINE__) <<")\n"; throw std::runtime_error(#__VA_ARGS__); }
 
 #endif //DEPENDENCIES_HPP

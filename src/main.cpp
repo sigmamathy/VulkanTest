@@ -20,14 +20,23 @@ int main(int argc, char** argv)
     float vertices[] = {
         -0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f,
         0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f,
-        0.0f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f,
+        0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f,
+        -0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 1.0f,
+    };
+
+    unsigned indices[] = {
+        0, 1, 2,
+        0, 2, 3
     };
 
     DrawCommandPool pool(app);
     pool.CreateBuffers(2);
 
-    VertexBuffer buffer(app, sizeof(vertices));
-    buffer.MapData(pool.GetPool(), vertices);
+    VertexBuffer vb(app, sizeof(vertices));
+    vb.MapData(pool.GetPool(), vertices);
+
+    IndexBuffer ib(app, sizeof(indices));
+    ib.MapData(pool.GetPool(), indices);
 
     uint32_t frame = 0;
     DrawPresentSynchronizer syncs[2] = {DrawPresentSynchronizer(app), DrawPresentSynchronizer(app)};
@@ -42,8 +51,9 @@ int main(int argc, char** argv)
         rec.BindPipeline(pipeline);
         rec.SetViewportDefault();
         rec.SetScissorDefault();
-        rec.BindVertexBuffer(buffer);
-        rec.Draw(3, 1);
+        rec.BindVertexBuffer(vb);
+        rec.BindIndexBuffer(ib);
+        rec.DrawIndexed(6, 1);
         rec.EndRecord();
 
         syncs[frame].SubmitDraw(pool.GetCommandBuffer(frame));

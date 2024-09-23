@@ -9,6 +9,7 @@ struct DrawRecorder
 
     void BindPipeline(class GraphicsPipeline const& pipeline);
     void BindVertexBuffer(class VertexBuffer const& buffer);
+    void BindIndexBuffer(class IndexBuffer const& buffer);
 
     void SetViewport(const VkViewport &viewport);
     void SetViewportDefault();
@@ -16,6 +17,7 @@ struct DrawRecorder
     void SetScissorDefault();
 
     void Draw(uint32_t count, uint32_t instance);
+    void DrawIndexed(uint32_t count, uint32_t instance);
 
     void EndRecord();
 };
