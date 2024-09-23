@@ -23,11 +23,11 @@ int main(int argc, char** argv)
         0.0f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f,
     };
 
-    VertexBuffer buffer(app, sizeof(vertices));
-    buffer.MapData(vertices);
-
     DrawCommandPool pool(app);
     pool.CreateBuffers(2);
+
+    VertexBuffer buffer(app, sizeof(vertices));
+    buffer.MapData(pool.GetPool(), vertices);
 
     uint32_t frame = 0;
     DrawPresentSynchronizer syncs[2] = {DrawPresentSynchronizer(app), DrawPresentSynchronizer(app)};

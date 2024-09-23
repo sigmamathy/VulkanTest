@@ -35,6 +35,8 @@ public:
 
     void ResetRecord(size_t index);
 
+    [[nodiscard]] VkCommandPool GetPool() const { return m_pool; }
+
 private:
 
     VkDevice m_device;
