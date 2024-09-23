@@ -1,33 +1,36 @@
-#include "Graphics.hpp"
-#include "TestApp.hpp"
+#include "Graphics/Pipeline.hpp"
 
-#define THISFILE "Graphics.cpp"
+#include "Graphics/Device.hpp"
+
+#define THISFILE "Graphics/Pipeline.cpp"
 
 static VkShaderModule s_CreateShaderModule(VkDevice device, char const* path)
 {
-	std::ifstream ifs(path, std::ios::ate | std::ios::binary);
-	ERRCHECK(ifs.is_open());
-	size_t fsize = ifs.tellg();
-	std::vector<char> buffer(fsize);
-	ifs.seekg(0);
-	ifs.read(buffer.data(), static_cast<std::streamsize>(fsize));
-	ifs.close();
+    std::ifstream ifs(path, std::ios::ate | std::ios::binary);
+    ERRCHECK(ifs.is_open());
+    size_t fsize = ifs.tellg();
+    std::vector<char> buffer(fsize);
+    ifs.seekg(0);
+    ifs.read(buffer.data(), static_cast<std::streamsize>(fsize));
+    ifs.close();
 
-	VkShaderModuleCreateInfo shader_ci{};
-	shader_ci.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-	shader_ci.codeSize = buffer.size();
-	shader_ci.pCode = reinterpret_cast<const uint32_t*>(buffer.data());
+    VkShaderModuleCreateInfo shader_ci{};
+    shader_ci.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    shader_ci.codeSize = buffer.size();
+    shader_ci.pCode = reinterpret_cast<const uint32_t*>(buffer.data());
 
-	VkShaderModule module;
-	ERRCHECK(vkCreateShaderModule(device, &shader_ci, nullptr, &module) == VK_SUCCESS);
-	return module;
+    VkShaderModule module;
+    ERRCHECK(vkCreateShaderModule(device, &shader_ci, nullptr, &module) == VK_SUCCESS);
+    return module;
 }
 
-GraphicsPipeline::GraphicsPipeline(TestApp const& app, CreateInfo const& info)
-	: m_device(app.GetDevice()), m_pipeline{}, m_pipeline_layout{}
+GraphicsPipeline::GraphicsPipeline(CreateInfo const& info)
+	: m_device(*info.Device), m_pipeline{}, m_pipeline_layout{}
 {
-	VkShaderModule vert = s_CreateShaderModule(m_device, info.Vertex);
-	VkShaderModule frag = s_CreateShaderModule(m_device, info.Fragment);
+	VkDevice device = info.Device->GetDevice();
+
+	VkShaderModule vert = s_CreateShaderModule(device, info.Vertex);
+	VkShaderModule frag = s_CreateShaderModule(device, info.Fragment);
 
 	VkPipelineShaderStageCreateInfo shader_stages_ci[] = { {}, {} };
 
@@ -117,7 +120,7 @@ GraphicsPipeline::GraphicsPipeline(TestApp const& app, CreateInfo const& info)
 
 	VkPipelineLayoutCreateInfo pipeline_layout_ci{};
 	pipeline_layout_ci.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	ERRCHECK(vkCreatePipelineLayout(m_device, &pipeline_layout_ci, nullptr, &m_pipeline_layout) == VK_SUCCESS);
+	ERRCHECK(vkCreatePipelineLayout(device, &pipeline_layout_ci, nullptr, &m_pipeline_layout) == VK_SUCCESS);
 
 	VkGraphicsPipelineCreateInfo pipeline_ci{};
 	pipeline_ci.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -131,75 +134,18 @@ GraphicsPipeline::GraphicsPipeline(TestApp const& app, CreateInfo const& info)
 	pipeline_ci.pColorBlendState = &blending_ci;
 	pipeline_ci.pDynamicState = &dynamic_state_ci;
 	pipeline_ci.layout = m_pipeline_layout;
-	pipeline_ci.renderPass = info.RenderPass;
+	pipeline_ci.renderPass = info.Device->GetRenderPass();
 	pipeline_ci.subpass = 0;
 	pipeline_ci.basePipelineHandle = VK_NULL_HANDLE;
 
-	ERRCHECK(vkCreateGraphicsPipelines(m_device, VK_NULL_HANDLE, 1, &pipeline_ci, nullptr, &m_pipeline) == VK_SUCCESS);
+	ERRCHECK(vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipeline_ci, nullptr, &m_pipeline) == VK_SUCCESS);
 
-	vkDestroyShaderModule(m_device, vert, nullptr);
-	vkDestroyShaderModule(m_device, frag, nullptr);
+	vkDestroyShaderModule(device, vert, nullptr);
+	vkDestroyShaderModule(device, frag, nullptr);
 }
 
 GraphicsPipeline::~GraphicsPipeline()
 {
-	vkDestroyPipeline(m_device, m_pipeline, nullptr);
-	vkDestroyPipelineLayout(m_device, m_pipeline_layout, nullptr);
-}
-
-Framebuffers::Framebuffers(TestApp const &app)
-	: m_device(app.GetDevice()), m_render_pass{}, m_format(app.GetSwapchainImageFormat()), m_extent(app.GetSwapchainExtent())
-{
-	VkAttachmentDescription description{};
-	description.format = m_format;
-	description.samples = VK_SAMPLE_COUNT_1_BIT;
-	description.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-	description.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-	description.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	description.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	description.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	description.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-
-	VkAttachmentReference reference{};
-	reference.attachment = 0;
-	reference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-
-	VkSubpassDescription subpass{};
-	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	subpass.colorAttachmentCount = 1;
-	subpass.pColorAttachments = &reference;
-
-	VkRenderPassCreateInfo render_pass_ci{};
-	render_pass_ci.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	render_pass_ci.attachmentCount = 1;
-	render_pass_ci.pAttachments = &description;
-	render_pass_ci.subpassCount = 1;
-	render_pass_ci.pSubpasses = &subpass;
-
-	ERRCHECK(vkCreateRenderPass(m_device, &render_pass_ci, nullptr, &m_render_pass) == VK_SUCCESS);
-
-	auto& image_views = app.GetSwapchainImageViews();
-	m_framebuffers.resize(image_views.size());
-
-	for (int i = 0; i < m_framebuffers.size(); i++)
-	{
-		VkFramebufferCreateInfo framebufferInfo{};
-		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		framebufferInfo.renderPass = m_render_pass;
-		framebufferInfo.attachmentCount = 1;
-		framebufferInfo.pAttachments = &image_views[i];
-		framebufferInfo.width = m_extent.width;
-		framebufferInfo.height = m_extent.height;
-		framebufferInfo.layers = 1;
-
-		ERRCHECK(vkCreateFramebuffer(m_device, &framebufferInfo, nullptr, &m_framebuffers[i]) == VK_SUCCESS);
-	}
-}
-
-Framebuffers::~Framebuffers()
-{
-	for (auto framebuffer : m_framebuffers)
-		vkDestroyFramebuffer(m_device, framebuffer, nullptr);
-
-	vkDestroyRenderPass(m_device, m_render_pass, nullptr);
+	vkDestroyPipeline(m_device.GetDevice(), m_pipeline, nullptr);
+	vkDestroyPipelineLayout(m_device.GetDevice(), m_pipeline_layout, nullptr);
 }

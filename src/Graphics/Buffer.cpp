@@ -1,7 +1,7 @@
-#include "Buffer.hpp"
-#include "TestApp.hpp"
+#include "Graphics/Buffer.hpp"
+#include "Graphics/Device.hpp"
 
-#define THISFILE "Buffer.cpp"
+#define THISFILE "Graphics/Buffer.cpp"
 
 static uint32_t s_FindMemoryTypeIndex(VkPhysicalDevice device, uint32_t filter, VkMemoryPropertyFlags flags)
 {
@@ -95,11 +95,10 @@ s_CopyViaStagingBuffer(VkDevice device, VkPhysicalDevice pd, VkDeviceSize size, 
     vkFreeMemory(device, stage_mem, nullptr);
 }
 
-VertexBuffer::VertexBuffer(TestApp const& app, VkDeviceSize size)
-    : m_device(app.GetDevice()), m_physical_device(app.GetPhysicalDevice()),
-    m_graphics_queue(app.GetGraphicsQueue().Queue), m_size(size)
+VertexBuffer::VertexBuffer(GraphicsDevice const& device, VkDeviceSize size)
+    : m_device(device), m_size(size)
 {
-    auto [fst, snd] = s_CreateBufferAndAllocateMemory(m_device, m_physical_device, size,
+    auto [fst, snd] = s_CreateBufferAndAllocateMemory(m_device.GetDevice(), m_device.GetPhysicalDevice(), size,
             VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     m_buffer = fst;
@@ -108,20 +107,19 @@ VertexBuffer::VertexBuffer(TestApp const& app, VkDeviceSize size)
 
 VertexBuffer::~VertexBuffer()
 {
-    vkDestroyBuffer(m_device, m_buffer, nullptr);
-    vkFreeMemory(m_device, m_memory, nullptr);
+    vkDestroyBuffer(m_device.GetDevice(), m_buffer, nullptr);
+    vkFreeMemory(m_device.GetDevice(), m_memory, nullptr);
 }
 
-void VertexBuffer::MapData(VkCommandPool pool, const void *src)
+void VertexBuffer::MapData(const void *src)
 {
-    s_CopyViaStagingBuffer(m_device, m_physical_device, m_size, pool, m_graphics_queue, src, m_buffer);
+    s_CopyViaStagingBuffer(m_device.GetDevice(), m_device.GetPhysicalDevice(), m_size, m_device.GetTmpPool(), m_device.GetGraphicsQueue().Queue, src, m_buffer);
 }
 
-IndexBuffer::IndexBuffer(TestApp const &app, VkDeviceSize size)
-    : m_device(app.GetDevice()), m_physical_device(app.GetPhysicalDevice()),
-    m_graphics_queue(app.GetGraphicsQueue().Queue), m_size(size)
+IndexBuffer::IndexBuffer(GraphicsDevice const& device, VkDeviceSize size)
+    : m_device(device), m_size(size)
 {
-    auto [fst, snd] = s_CreateBufferAndAllocateMemory(m_device, m_physical_device, size,
+    auto [fst, snd] = s_CreateBufferAndAllocateMemory(m_device.GetDevice(), m_device.GetPhysicalDevice(), size,
             VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
     m_buffer = fst;
@@ -130,12 +128,12 @@ IndexBuffer::IndexBuffer(TestApp const &app, VkDeviceSize size)
 
 IndexBuffer::~IndexBuffer()
 {
-    vkDestroyBuffer(m_device, m_buffer, nullptr);
-    vkFreeMemory(m_device, m_memory, nullptr);
+    vkDestroyBuffer(m_device.GetDevice(), m_buffer, nullptr);
+    vkFreeMemory(m_device.GetDevice(), m_memory, nullptr);
 }
 
-void IndexBuffer::MapData(VkCommandPool pool, const unsigned *src)
+void IndexBuffer::MapData(const unsigned *src)
 {
-    s_CopyViaStagingBuffer(m_device, m_physical_device, m_size, pool, m_graphics_queue, src, m_buffer);
+    s_CopyViaStagingBuffer(m_device.GetDevice(), m_device.GetPhysicalDevice(), m_size, m_device.GetTmpPool(), m_device.GetGraphicsQueue().Queue, src, m_buffer);
 }
 

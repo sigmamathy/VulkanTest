@@ -14,6 +14,12 @@
 #include <limits>
 #include <fstream>
 
+#define GRAPHICS_VALIDATION_LAYER "VK_LAYER_KHRONOS_validation"
+
+#define NODISCARD [[nodiscard]]
+
+#define CLASS_DECLARE(x) class x
+
 #define ERRCHECK(...) if (!(__VA_ARGS__)) [[unlikely]] { std::cerr << "Requirement: " #__VA_ARGS__\
     " FAILED. (" THISFILE ":" << std::to_string(__LINE__) <<")\n"; throw std::runtime_error(#__VA_ARGS__); }
 

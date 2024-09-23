@@ -5,17 +5,21 @@ set(CMAKE_CXX_STANDARD 20)
 
 add_executable(${PROJECT_NAME}
 
-        src/main.cpp
-        src/TestApp.cpp
-        src/Graphics.cpp
-        src/Drawing.cpp
-
         include/Dependencies.hpp
-        include/TestApp.hpp
-        include/Graphics.hpp
-        include/Drawing.hpp
-        include/Buffer.hpp
-        src/Buffer.cpp
+        include/Graphics/API.hpp
+        include/Graphics/Window.hpp
+        include/Graphics/Device.hpp
+        include/Graphics/Pipeline.hpp
+        include/Graphics/Sync.hpp
+        include/Graphics/Buffer.hpp
+
+        src/main.cpp
+        src/Graphics/API.cpp
+        src/Graphics/Window.cpp
+        src/Graphics/Device.cpp
+        src/Graphics/Pipeline.cpp
+        src/Graphics/Sync.cpp
+        src/Graphics/Buffer.cpp
 )
 
 find_package(glfw3 CONFIG REQUIRED)
