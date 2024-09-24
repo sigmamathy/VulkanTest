@@ -14,6 +14,8 @@
 #include <limits>
 #include <fstream>
 #include <functional>
+#include <type_traits>
+#include <cmath>
 
 #define GRAPHICS_VALIDATION_LAYER "VK_LAYER_KHRONOS_validation"
 

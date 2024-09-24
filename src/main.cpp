@@ -4,6 +4,13 @@
 #include "Graphics/Pipeline.hpp"
 #include "Graphics/Sync.hpp"
 #include "Graphics/Buffer.hpp"
+#include "Math/Vector.hpp"
+
+struct Vertex
+{
+    Fvec3 position;
+    Fvec3 color;
+};
 
 int main(int argc, char** argv)
 {
@@ -20,14 +27,14 @@ int main(int argc, char** argv)
 
     GraphicsPipeline pipeline(info);
 
-    float vertices[] = {
-        -0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f,
-        0.5f, 0.5f, 0.0f, 0.0f, 1.0f, 0.0f,
-        0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f,
-        -0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 1.0f,
+    std::array vertices = {
+        Vertex{Fvec3(-0.5f, 0.5f, 0.0f), Fvec3(1.0f, 0.0f, 0.0f)},
+        Vertex{Fvec3(0.5f, 0.5f, 0.0f), Fvec3(0.0f, 1.0f, 0.0f)},
+        Vertex{Fvec3(0.5f, -0.5f, 0.0f), Fvec3(0.0f, 0.0f, 1.0f)},
+        Vertex{Fvec3(-0.5f, -0.5f, 0.0f), Fvec3(1.0f, 1.0f, 1.0f)}
     };
 
-    unsigned indices[] = {
+    std::array<unsigned, 6> indices = {
         0, 1, 2,
         0, 2, 3
     };
@@ -35,11 +42,11 @@ int main(int argc, char** argv)
     VkCommandBuffer cmd[2];
     device.CreateDrawCmdBuffers(cmd, 2);
 
-    VertexBuffer vb(device, sizeof(vertices));
-    vb.MapData(vertices);
+    VertexBuffer vb(device, sizeof(Vertex) * vertices.size());
+    vb.MapData(vertices.data());
 
-    IndexBuffer ib(device, sizeof(indices));
-    ib.MapData(indices);
+    IndexBuffer ib(device, sizeof(unsigned) * indices.size());
+    ib.MapData(indices.data());
 
     uint32_t frame = 0;
     DrawPresentSynchronizer syncs[2] = {DrawPresentSynchronizer(device), DrawPresentSynchronizer(device)};
@@ -56,7 +63,7 @@ int main(int argc, char** argv)
         rec.SetScissorDefault();
         rec.BindVertexBuffer(vb);
         rec.BindIndexBuffer(ib);
-        rec.DrawIndexed(6, 1);
+        rec.DrawIndexed(indices.size(), 1);
         rec.EndRecord();
 
         syncs[frame].SubmitDraw(cmd[frame]);

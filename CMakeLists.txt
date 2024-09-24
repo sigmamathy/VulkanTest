@@ -12,6 +12,9 @@ add_executable(${PROJECT_NAME}
         include/Graphics/Pipeline.hpp
         include/Graphics/Sync.hpp
         include/Graphics/Buffer.hpp
+        include/Math/Vector.hpp
+        include/Math/Matrix.hpp
+        include/Math/Transform.hpp
 
         src/main.cpp
         src/Graphics/API.cpp
@@ -20,6 +23,7 @@ add_executable(${PROJECT_NAME}
         src/Graphics/Pipeline.cpp
         src/Graphics/Sync.cpp
         src/Graphics/Buffer.cpp
+        src/Math/Transform.cpp
 )
 
 find_package(glfw3 CONFIG REQUIRED)
