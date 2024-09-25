@@ -12,10 +12,19 @@ struct Vertex
     Fvec3 color;
 };
 
+static void EventCallback(WindowEvent const& e)
+{
+    if (e.Type == e.KEY_EVENT) {
+        std::cout << e.KE.Code << '\n';
+    }
+}
+
 int main(int argc, char** argv)
 {
     GraphicsAPI api;
     DisplayWindow window(api, 1600, 900, "Hello World");
+    window.SetEventCallback(EventCallback);
+
     GraphicsDevice device(api, window);
 
     GraphicsPipeline::CreateInfo info;
