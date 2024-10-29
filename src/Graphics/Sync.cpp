@@ -69,5 +69,6 @@ void DrawPresentSynchronizer::PresentOnScreen(uint32_t frame_index)
     presentInfo.pSwapchains = swapchains;
     presentInfo.pImageIndices = &frame_index;
 
-    ERRCHECK(vkQueuePresentKHR(m_device.GetPresentQueue().Queue, &presentInfo) == VK_SUCCESS);
+    VkResult r = vkQueuePresentKHR(m_device.GetPresentQueue().Queue, &presentInfo);
+    ERRCHECK(r == VK_SUCCESS || r == VK_SUBOPTIMAL_KHR);
 }

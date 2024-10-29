@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.29)
 project(Test)
 
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_executable(${PROJECT_NAME}
 
@@ -30,7 +31,7 @@ find_package(glfw3 CONFIG REQUIRED)
 
 target_include_directories(Test PUBLIC include $ENV{VULKAN_SDK}/Include)
 target_link_directories(Test PRIVATE $ENV{VULKAN_SDK}/Lib)
-target_link_libraries(Test PRIVATE glfw vulkan-1)
+target_link_libraries(Test PRIVATE glfw vulkan)
 
 # List of all shaders
 set(SHADER_SOURCES
@@ -53,3 +54,12 @@ foreach(SHADER ${SHADER_SOURCES})
     add_dependencies(${PROJECT_NAME} "shader_build_${SHADER_TARGET_INDEX}")
     math(EXPR SHADER_TARGET_INDEX "${SHADER_TARGET_INDEX} + 1")
 endforeach()
+
+if (PROJECT_IS_TOP_LEVEL AND UNIX)
+    # Create symlink to compile_commands.json for IDE to pick it up
+    execute_process(
+        COMMAND ${CMAKE_COMMAND} -E create_symlink
+            ${CMAKE_BINARY_DIR}/compile_commands.json
+            ${CMAKE_CURRENT_SOURCE_DIR}/compile_commands.json
+    )
+endif()
