@@ -199,9 +199,8 @@ GraphicsPipeline::~GraphicsPipeline()
 {
 	vkDestroyPipeline(m_device.GetDevice(), m_pipeline, nullptr);
 	vkDestroyPipelineLayout(m_device.GetDevice(), m_pipeline_layout, nullptr);
-	for (int i = 0; i < 4; ++i) {
-		if (m_descriptor_set_layouts[i])
-			vkDestroyDescriptorSetLayout(m_device.GetDevice(), m_descriptor_set_layouts[i], nullptr);
+	for (int i = 0; i < m_descriptor_set_layouts.size(); ++i) {
+		vkDestroyDescriptorSetLayout(m_device.GetDevice(), m_descriptor_set_layouts[i], nullptr);
 	}
 
 	vkDestroyDescriptorPool(m_device.GetDevice(), m_descriptor_pool, nullptr);
@@ -214,11 +213,6 @@ void GraphicsPipeline::WriteDescriptor(int sid, int rid, VkBuffer buffer, size_t
     bufferInfo.offset = 0;
     bufferInfo.range = size;
 
-	std::cout << m_descriptor_sets.size() << '\n';
-	std::cout << m_descriptor_sets[0] << '\n';
-	std::cout << m_descriptor_sets[1] << '\n';
-
-
     VkWriteDescriptorSet write{};
     write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
     write.dstSet = m_descriptor_sets[rid];
@@ -229,7 +223,5 @@ void GraphicsPipeline::WriteDescriptor(int sid, int rid, VkBuffer buffer, size_t
     write.pBufferInfo = &bufferInfo;
 
     vkUpdateDescriptorSets(m_device.GetDevice(), 1, &write, 0, nullptr);
-
-	printf("hi");
 }
 

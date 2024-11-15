@@ -22,6 +22,7 @@ struct DrawCmdRecorder
     void BindPipeline(GraphicsPipeline const& pipeline);
     void BindVertexBuffer(VertexBuffer const& buffer);
     void BindIndexBuffer(IndexBuffer const& buffer);
+	void BindDescriptorSets(GraphicsPipeline const& pipeline, int id);
 
     void SetViewport(const VkViewport &viewport);
     void SetViewportDefault();

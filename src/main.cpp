@@ -7,6 +7,7 @@
 #include "Math/Vector.hpp"
 #include "Math/Matrix.hpp"
 #include "Math/Transform.hpp"
+#include <GLFW/glfw3.h>
 
 struct Vertex
 {
@@ -24,7 +25,7 @@ struct MVP_Matrix
 static void EventCallback(WindowEvent const& e)
 {
     if (e.Type == e.KEY_EVENT) {
-        std::cout << e.KE.Code << '\n';
+        // std::cout << e.KE.Code << '\n';
     }
 }
 
@@ -63,7 +64,7 @@ int main(int argc, char** argv)
 
 	pipeline.WriteDescriptor(0, 0, uniforms[0].GetBuffer(), uniforms[0].GetSize());
 	pipeline.WriteDescriptor(0, 1, uniforms[1].GetBuffer(), uniforms[1].GetSize());
-
+	
     VkCommandBuffer cmd[2];
     device.CreateDrawCmdBuffers(cmd, 2);
 
@@ -83,13 +84,14 @@ int main(int argc, char** argv)
         device.ResetRecord(cmd[frame]);
 
 		MVP_Matrix mvp;
-		mvp.model = Fmat4(1.f);
-		mvp.view = LookAtView(Fvec3(0.f, -1.f, 0.f), Fvec3(0.f, 1.f, 0.f));
-		mvp.proj = PerspectiveProjection(3.1415f, 16.f/9, .1f, 100.f);
+		mvp.model = RotateModel(glfwGetTime(), Fvec3(0.f, 1.f, 0.f));
+		mvp.view = LookAtView(Fvec3(0.f, 0.f, 1.f), Fvec3(0.f, 0.f, -1.f));
+		mvp.proj = PerspectiveProjection(2.0944f, 16.f/9, .1f, 100.f);
 		uniforms[frame].Update(&mvp);
 
         DrawCmdRecorder rec = device.BeginRecord(cmd[frame], index);
         rec.BindPipeline(pipeline);
+		rec.BindDescriptorSets(pipeline, frame);
         rec.SetViewportDefault();
         rec.SetScissorDefault();
         rec.BindVertexBuffer(vb);

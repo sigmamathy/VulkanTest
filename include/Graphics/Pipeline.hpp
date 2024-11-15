@@ -50,7 +50,11 @@ public:
 
     NODISCARD VkPipeline GetPipeline() const { return m_pipeline; }
 
+	NODISCARD VkPipelineLayout GetLayout() const { return m_pipeline_layout; }
+
 	void WriteDescriptor(int sid, int rid, VkBuffer buffer, size_t size);
+
+	VkDescriptorSet const& GetDescriptorSets(int id) const { return m_descriptor_sets[id]; }
 
 private:
 

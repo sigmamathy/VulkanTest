@@ -143,5 +143,5 @@ UniformBuffer::~UniformBuffer()
 
 void UniformBuffer::Update(void const* src)
 {
-	std::memcpy(m_buffer, src, m_size);
+	std::memcpy(m_data, src, m_size);
 }

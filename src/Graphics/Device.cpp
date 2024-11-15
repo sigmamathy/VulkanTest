@@ -110,6 +110,11 @@ void DrawCmdRecorder::BindPipeline(GraphicsPipeline const &pipeline)
     vkCmdBindPipeline(Buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.GetPipeline());
 }
 
+void DrawCmdRecorder::BindDescriptorSets(GraphicsPipeline const& pipeline, int id)
+{
+	vkCmdBindDescriptorSets(Buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.GetLayout(), 0, 1, &pipeline.GetDescriptorSets(id), 0, nullptr);
+}
+
 void DrawCmdRecorder::BindVertexBuffer(VertexBuffer const &buffer)
 {
     VkBuffer b = buffer.GetBuffer();
