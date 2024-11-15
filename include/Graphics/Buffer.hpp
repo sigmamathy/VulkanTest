@@ -49,3 +49,27 @@ private:
     VkDeviceMemory m_memory;
     VkDeviceSize m_size;
 };
+
+class UniformBuffer 
+{
+public:
+	
+	UniformBuffer(GraphicsDevice const& device, VkDeviceSize size);
+
+	~UniformBuffer();
+
+	void Update(void const* src);
+    
+	NODISCARD VkBuffer GetBuffer() const { return m_buffer; }
+
+    NODISCARD VkDeviceSize GetSize() const { return m_size; }
+
+private:
+
+	GraphicsDevice const& m_device;
+
+	VkBuffer m_buffer;
+	VkDeviceMemory m_memory;
+	VkDeviceSize m_size;
+	void* m_data;
+};

@@ -3,6 +3,7 @@
 #include "Graphics/Window.hpp"
 #include "Graphics/Pipeline.hpp"
 #include "Graphics/Buffer.hpp"
+#include <vulkan/vulkan_core.h>
 
 #define THISFILE "Graphics/Device.cpp"
 

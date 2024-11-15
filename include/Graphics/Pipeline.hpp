@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Dependencies.hpp"
+#include <vulkan/vulkan_core.h>
 
 CLASS_DECLARE(GraphicsDevice);
 
@@ -17,6 +18,18 @@ struct VertexInputLayout
     }
 };
 
+struct DescriptorSetLayout 
+{
+	std::vector<VkDescriptorSetLayoutBinding> m_bindings;
+	uint32_t m_uniform_buffer_count = 0;
+
+	void AddUniformBuffer(int bind, VkShaderStageFlags stage)
+	{
+		m_bindings.emplace_back(bind, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, stage, nullptr);
+		++m_uniform_buffer_count;
+	}
+};
+
 class GraphicsPipeline
 {
 public:
@@ -27,6 +40,8 @@ public:
         char const* Vertex;
         char const* Fragment;
         VertexInputLayout Input;
+		DescriptorSetLayout Descriptors[4];
+		uint32_t DescriptorSetsMultiplier = 1;
     };
 
     explicit GraphicsPipeline(CreateInfo const& info);
@@ -35,10 +50,15 @@ public:
 
     NODISCARD VkPipeline GetPipeline() const { return m_pipeline; }
 
+	void WriteDescriptor(int sid, int rid, VkBuffer buffer, size_t size);
+
 private:
 
     GraphicsDevice const& m_device;
     VkPipeline m_pipeline;
     VkPipelineLayout m_pipeline_layout;
 
+	std::vector<VkDescriptorSetLayout> m_descriptor_set_layouts;
+	VkDescriptorPool m_descriptor_pool;
+	std::vector<VkDescriptorSet> m_descriptor_sets;
 };

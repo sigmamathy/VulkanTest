@@ -5,11 +5,20 @@
 #include "Graphics/Sync.hpp"
 #include "Graphics/Buffer.hpp"
 #include "Math/Vector.hpp"
+#include "Math/Matrix.hpp"
+#include "Math/Transform.hpp"
 
 struct Vertex
 {
     Fvec3 position;
     Fvec3 color;
+};
+
+struct MVP_Matrix
+{
+	Fmat4 model;
+	Fmat4 view;
+	Fmat4 proj;
 };
 
 static void EventCallback(WindowEvent const& e)
@@ -29,10 +38,12 @@ int main(int argc, char** argv)
 
     GraphicsPipeline::CreateInfo info;
     info.Device = &device;
-    info.Vertex = "shaders/shader.vert.spv";
-    info.Fragment = "shaders/shader.frag.spv";
+    info.Vertex = "out/shaders/shader.vert.spv";
+    info.Fragment = "out/shaders/shader.frag.spv";
     info.Input.Add(0, 3);
     info.Input.Add(1, 3);
+	info.Descriptors[0].AddUniformBuffer(0, VK_SHADER_STAGE_VERTEX_BIT);
+	info.DescriptorSetsMultiplier = 2;
 
     GraphicsPipeline pipeline(info);
 
@@ -47,6 +58,11 @@ int main(int argc, char** argv)
         0, 1, 2,
         0, 2, 3
     };
+
+	UniformBuffer uniforms[2] = {UniformBuffer(device, sizeof(MVP_Matrix)), UniformBuffer(device, sizeof(MVP_Matrix))};
+
+	pipeline.WriteDescriptor(0, 0, uniforms[0].GetBuffer(), uniforms[0].GetSize());
+	pipeline.WriteDescriptor(0, 1, uniforms[1].GetBuffer(), uniforms[1].GetSize());
 
     VkCommandBuffer cmd[2];
     device.CreateDrawCmdBuffers(cmd, 2);
@@ -65,6 +81,12 @@ int main(int argc, char** argv)
         uint32_t index = syncs[frame].NextFrame();
 
         device.ResetRecord(cmd[frame]);
+
+		MVP_Matrix mvp;
+		mvp.model = Fmat4(1.f);
+		mvp.view = LookAtView(Fvec3(0.f, -1.f, 0.f), Fvec3(0.f, 1.f, 0.f));
+		mvp.proj = PerspectiveProjection(3.1415f, 16.f/9, .1f, 100.f);
+		uniforms[frame].Update(&mvp);
 
         DrawCmdRecorder rec = device.BeginRecord(cmd[frame], index);
         rec.BindPipeline(pipeline);

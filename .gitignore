@@ -1,7 +1,11 @@
 .git/
-cmake-build-debug/
-cmake-build-release/
+cmake-*/
 .idea/
+.vs/
+.vscode/
 out/
 build/
 .cache/
+
+run
+compile_commands.json

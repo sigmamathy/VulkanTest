@@ -124,3 +124,24 @@ void IndexBuffer::MapData(const unsigned *src)
     s_CopyViaStagingBuffer(m_device, m_size, src, m_buffer);
 }
 
+UniformBuffer::UniformBuffer(GraphicsDevice const& device, VkDeviceSize size)
+	: m_device(device), m_size(size)
+{
+    auto [b, m] = s_CreateBufferAndAllocateMemory(m_device.GetDevice(), m_device.GetPhysicalDevice(), size, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+	m_buffer = b;
+	m_memory = m;
+
+    vkMapMemory(m_device.GetDevice(), m_memory, 0, size, 0, &m_data);
+}
+
+UniformBuffer::~UniformBuffer()
+{
+	vkDestroyBuffer(m_device.GetDevice(), m_buffer, nullptr);
+    vkFreeMemory(m_device.GetDevice(), m_memory, nullptr);
+}
+
+void UniformBuffer::Update(void const* src)
+{
+	std::memcpy(m_buffer, src, m_size);
+}

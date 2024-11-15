@@ -1,6 +1,8 @@
 #include "Graphics/Pipeline.hpp"
 
+#include "Dependencies.hpp"
 #include "Graphics/Device.hpp"
+#include <vulkan/vulkan_core.h>
 
 #define THISFILE "Graphics/Pipeline.cpp"
 
@@ -25,7 +27,7 @@ static VkShaderModule s_CreateShaderModule(VkDevice device, char const* path)
 }
 
 GraphicsPipeline::GraphicsPipeline(CreateInfo const& info)
-	: m_device(*info.Device), m_pipeline{}, m_pipeline_layout{}
+	: m_device(*info.Device), m_pipeline{}, m_pipeline_layout{}, m_descriptor_set_layouts{}
 {
 	VkDevice device = info.Device->GetDevice();
 
@@ -118,8 +120,32 @@ GraphicsPipeline::GraphicsPipeline(CreateInfo const& info)
 	dynamic_state_ci.dynamicStateCount = dynamic_states.size();
 	dynamic_state_ci.pDynamicStates = dynamic_states.data();
 
+	std::array<VkDescriptorPoolSize, 1> pool_sizes;
+	pool_sizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	pool_sizes[0].descriptorCount = 0;
+
 	VkPipelineLayoutCreateInfo pipeline_layout_ci{};
 	pipeline_layout_ci.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+
+	for (int i = 0;; ++i)
+	{
+		if (i >= 4 || info.Descriptors[i].m_bindings.empty())
+		{
+			pipeline_layout_ci.setLayoutCount = i;
+			pipeline_layout_ci.pSetLayouts = i ? m_descriptor_set_layouts.data() : nullptr;
+			break;
+		}
+
+		VkDescriptorSetLayoutCreateInfo layout_ci{};
+		layout_ci.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+		layout_ci.bindingCount = info.Descriptors[i].m_bindings.size();
+		layout_ci.pBindings = info.Descriptors[i].m_bindings.data();
+
+		ERRCHECK(vkCreateDescriptorSetLayout(m_device.GetDevice(), &layout_ci, nullptr, &m_descriptor_set_layouts.emplace_back()) == VK_SUCCESS);
+
+		pool_sizes[0].descriptorCount += info.Descriptors[i].m_uniform_buffer_count;
+	}
+
 	ERRCHECK(vkCreatePipelineLayout(device, &pipeline_layout_ci, nullptr, &m_pipeline_layout) == VK_SUCCESS);
 
 	VkGraphicsPipelineCreateInfo pipeline_ci{};
@@ -142,10 +168,68 @@ GraphicsPipeline::GraphicsPipeline(CreateInfo const& info)
 
 	vkDestroyShaderModule(device, vert, nullptr);
 	vkDestroyShaderModule(device, frag, nullptr);
+
+	pool_sizes[0].descriptorCount *= info.DescriptorSetsMultiplier;
+
+	VkDescriptorPoolCreateInfo pool_i{};
+	pool_i.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	pool_i.poolSizeCount = static_cast<uint32_t>(pool_sizes.size());
+	pool_i.pPoolSizes = pool_sizes.data();
+	pool_i.maxSets = info.DescriptorSetsMultiplier;
+
+	ERRCHECK(vkCreateDescriptorPool(device, &pool_i, nullptr, &m_descriptor_pool) == VK_SUCCESS);
+
+	uint32_t total_sets = m_descriptor_set_layouts.size() * info.DescriptorSetsMultiplier;
+	m_descriptor_sets.resize(total_sets);
+	std::vector<VkDescriptorSetLayout> layouts;
+	layouts.reserve(total_sets);
+	for (int j = 0; j < info.DescriptorSetsMultiplier; ++j) {
+		for (int i = 0; i < m_descriptor_set_layouts.size(); ++i)
+			layouts.push_back(m_descriptor_set_layouts[i]);
+	}
+	VkDescriptorSetAllocateInfo desc_set_ai{};
+	desc_set_ai.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+	desc_set_ai.descriptorPool = m_descriptor_pool;
+	desc_set_ai.descriptorSetCount = total_sets;
+	desc_set_ai.pSetLayouts = layouts.data();
+	ERRCHECK(vkAllocateDescriptorSets(device, &desc_set_ai, m_descriptor_sets.data()) == VK_SUCCESS);
 }
 
 GraphicsPipeline::~GraphicsPipeline()
 {
 	vkDestroyPipeline(m_device.GetDevice(), m_pipeline, nullptr);
 	vkDestroyPipelineLayout(m_device.GetDevice(), m_pipeline_layout, nullptr);
+	for (int i = 0; i < 4; ++i) {
+		if (m_descriptor_set_layouts[i])
+			vkDestroyDescriptorSetLayout(m_device.GetDevice(), m_descriptor_set_layouts[i], nullptr);
+	}
+
+	vkDestroyDescriptorPool(m_device.GetDevice(), m_descriptor_pool, nullptr);
 }
+
+void GraphicsPipeline::WriteDescriptor(int sid, int rid, VkBuffer buffer, size_t size)
+{
+	VkDescriptorBufferInfo bufferInfo{};
+    bufferInfo.buffer = buffer;
+    bufferInfo.offset = 0;
+    bufferInfo.range = size;
+
+	std::cout << m_descriptor_sets.size() << '\n';
+	std::cout << m_descriptor_sets[0] << '\n';
+	std::cout << m_descriptor_sets[1] << '\n';
+
+
+    VkWriteDescriptorSet write{};
+    write.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write.dstSet = m_descriptor_sets[rid];
+    write.dstBinding = 0;
+    write.dstArrayElement = 0;
+    write.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    write.descriptorCount = 1;
+    write.pBufferInfo = &bufferInfo;
+
+    vkUpdateDescriptorSets(m_device.GetDevice(), 1, &write, 0, nullptr);
+
+	printf("hi");
+}
+
